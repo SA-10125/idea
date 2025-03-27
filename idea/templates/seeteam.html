@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{team.Name}}</title>
+    <p>{{team.Name}}</p>
+       <p>No of shares in market: {{team.Number_of_shares_in_market}}</p>
+    <p></p>
+    <p>Current Market Value: {{team.Market_Value}}</p>
+<p></p>
+<p></p>
+    <p>News: {{team.News_and_updates}}</p>
+<p></p>
+<p></p>
+<p></p>   
+{% if admin %}
+<p>{{team.Old_order_book}}</p>
+{% endif %}
+</head>
+<body>
+    
+</body>
+</html>
