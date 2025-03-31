@@ -189,8 +189,7 @@ class CompletedTransaction(m.Model): #order book not needed since its just data 
 
     def __str__(self):
         return f"ask {self.completed_ask.a_ID}-bid {self.completed_bid.b_ID} at {self.executed_price}"
-
-#TODO: FIX THIS ASAP, NOT WORKING
+ 
 @receiver(post_save,sender=OrderTransaction) 
 def check_orders(sender, instance, **kwargs): #yes i know its innefficient, thats why its called vibe coding. (fr tho, fix it.)
     OB=instance.order_book
@@ -215,11 +214,12 @@ def check_orders(sender, instance, **kwargs): #yes i know its innefficient, that
                         #make a new bid with howmanyever remain
 
                     if linkask.stocks>=stockstoberemovedfromasker and linkbid.curuser_ID.Money>=moneytobecutfrombidder: #if both parties are able to follow through:
-                        linkask.stocks-=stockstoberemovedfromasker #not working
-                        linkbid.curuser_ID.Money-=moneytobecutfrombidder #not working
-                        linkbid.stocks+=stockstoberemovedfromasker #not working
+                        linkask.stocks-=stockstoberemovedfromasker 
+                        linkbid.curuser_ID.Money-=moneytobecutfrombidder 
+                        linkask.curuser_ID.Money+=moneytobecutfrombidder
+                        linkbid.stocks+=stockstoberemovedfromasker 
 
-                        OB.team.Market_Value=ask.askprice #not working
+                        OB.team.Market_Value=ask.askprice 
 
                         bid.closed_with=ask.a_ID #(will not trigger a orderbook save dw.)
                         ask.closed_with=bid.b_ID
@@ -230,7 +230,17 @@ def check_orders(sender, instance, **kwargs): #yes i know its innefficient, that
 
                         #Transaction book will be deleted by cascade
                         #Order book automatically doesnt have them.
+
+                        OB.save()
+                        OB.team.save()
+                        linkask.save()
+                        linkbid.save()
+                        linkbid.curuser_ID.save()
+                        linkask.curuser_ID.save()
+                        bid.save()
+                        ask.save()
                         
+
                         bid.delete() #im hoping to god this wont trigger a new ordertransaction save. in case it does, god help.
                         ask.delete()
 
@@ -242,7 +252,7 @@ def check_orders(sender, instance, **kwargs): #yes i know its innefficient, that
                                 newID=str(random.randint(10000000,99999999))
                                 if not Ask.objects.filter(a_ID=newID).exists():
                                     break
-                            #not working
+                            
                             Ask.objects.create(a_ID=newID,asker=completeask.asker,asker_ID=completeask.asker_ID,team_to_ask_on=OB.team,askprice=completeask.askprice,noaskedshares=completeask.noaskedshares-completedbid.nobidshares)
                             #when new ask created, it will trigger an ask save which will trigger a orderbook save which will trigger this to start all over so all the recent biddings get checked again.
                         elif completeask.noaskedshares<completedbid.nobidshares:
@@ -252,7 +262,7 @@ def check_orders(sender, instance, **kwargs): #yes i know its innefficient, that
                                 newID=str(random.randint(10000000,99999999))
                                 if not Bid.objects.filter(b_ID=newID).exists():
                                     break
-                            #probably not working
+                            
                             Bid.objects.create(b_ID=newID,bidder=completedbid.bidder,bidder_ID=completedbid.bidder_ID,team_to_bid_on=OB.team,bidprice=completedbid.bidprice,nobidshares=completedbid.nobidshares-completeask.noaskedshares)
                             #when new bid created, it will trigger an bid save which will trigger a orderbook save which will trigger this to start all over so all the recent biddings get checked again.
 
