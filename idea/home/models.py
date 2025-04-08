@@ -5,7 +5,10 @@ from django.dispatch import receiver
 from csv import writer #for the data.csv file.
 import random
 
-#This is vibe-coded, not to be used in prod.
+#I have used the term Vibe-coding in past comments, I did not know the meaning at the time and thought it meant coding for da vibes without worrying about efficiency and stuff. Just getting it to work.
+#There was no AI involved in writing any of this code at any point.
+
+#This is just coded for da vibes, not to be used in prod.
 
 class GeneralData(m.Model): #a model for general data
     peak=m.BigIntegerField(default=0)
@@ -191,7 +194,7 @@ class CompletedTransaction(m.Model): #order book not needed since its just data 
         return f"ask {self.completed_ask.a_ID}-bid {self.completed_bid.b_ID} at {self.executed_price}"
  
 @receiver(post_save,sender=OrderTransaction) 
-def check_orders(sender, instance, **kwargs): #yes i know its innefficient, thats why its called vibe coding. (fr tho, fix it.)
+def check_orders(sender, instance, **kwargs): #yes i know its innefficient, im just doing it for da vibes. (fr tho, fix it.)
     OB=instance.order_book
     for bid in OB.bids.all():
         for ask in OB.asks.all():
@@ -282,7 +285,7 @@ def check_orders(sender, instance, **kwargs): #yes i know its innefficient, that
 #     affected['comments']=[f"{i.commentinguser} commented on {i.commentedteam} at {i.whencommented} saying {i.comment}" for i in CommentonTeam.objects.filter(commentinguser=deluser)]
 #     affected['bids']=[f"{i.bidder} bid {i.bidprice} on {i.nobidshares} shares of {i.team_to_bid_on} at {i.bidwhen}" for i in Bid.objects.filter(bidder=deluser)]
 #     affected['asks']=[f"{i.asker} bid {i.askprice} on {i.noaskedshares} shares of {i.team_to_ask_on} at {i.askedwhen}" for i in Ask.objects.filter(asker=deluser)]
-#     #good luck to whoever has to retrieve data from this ngl. Its all there, just not in a convinient way. (since vibe coded, not for prod.)
+#     #good luck to whoever has to retrieve data from this ngl. Its all there, just not in a convinient way. (since not ensured working for prod.)
 #     w.writerow(list[affected.items()])
 #     f.close()
 
@@ -303,7 +306,7 @@ def check_orders(sender, instance, **kwargs): #yes i know its innefficient, that
 #     affected['asks']=[f"{i.asker} bid {i.askprice} on {i.noaskedshares} shares of {i.team_to_ask_on} at {i.askedwhen}" for i in Ask.objects.filter(team_to_ask_on=delTeam)]
 #     w.writerow(list[affected.items()])
 #     f.close()
-#     #good luck to whoever has to retrieve data from this ngl. Its all there, just not in a convinient way. (since vibe coded, not for prod.)
+#     #good luck to whoever has to retrieve data from this ngl. Its all there, just not in a convinient way. (will get into later)
 
 # @receiver(pre_delete,sender=LinktoTeam) #YET TO TEST
 # def saveteamlinkhistory(sender, instance, **kwargs):
