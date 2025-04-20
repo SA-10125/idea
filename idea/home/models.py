@@ -39,99 +39,104 @@ def makeID(sender, instance, created, **kwargs):
 
         UsersID.objects.create(user=instance,IDNum=newID)
 
-def find_net_worth(user_id):
-    #This is currently working on a system where a users net worth is defined by his teams value and his personal investments.
-    #TODO: But does the user own a portion of the teams valuation or do the shareholders own that amount of the teams valuation? discuss with E-club
+def find_current_valuation(team):
+    C=len(completed_investments.objects.filter(shares_of_company=team)) #number of teams invested in this company
+    S=team.Teams_Number_of_shares_in_market-team.Teams_Number_of_shares_with_company #number of shares this company has sold
+
+    Initial_Unit_Share_Price=team.Base_Valuation/team.Individual_Number_of_shares_in_market #(assuming no new shares are added in the market)
+    individuals_market_sentiment=(team.Individual_Unit_Share_Price-Initial_Unit_Share_Price)/team.Individual_Number_of_shares_in_market
     
+    current_valuation=(team.Base_Valuation*(1+(C*0.3))*(1+(S*0.002))*(1+(individuals_market_sentiment*0.05))) #the 0.05 is changable.
+    
+    return(current_valuation)
+    #so, treasury, price that the company's shares were bought at, etc dont directly influence current valuation. 
+    #But they do play roles as they do influence how much money anyone has at any point.
+    #Valuation only depends on:
+        #how many teams have invested in this company. (30% change)
+        #how many shares of this company are in the teams market. (0.2% change)
+        #individual_market_sentiment. (5% change)
+        
+
+def find_net_worth(user_id):
+    #TODO: But does the user own a portion of the teams valuation or do the shareholders own that amount of the teams valuation? discuss with E-club
+
+    #individual's net worth is defined by his personal investments in the companies in the individual market and his team's valuation.
+
     net=user_id.Money
-    teams_part_of=Induvidual_LinktoTeam.objects.filter(user_id=user_id)
+    teams_part_of=Individual_LinktoTeam.objects.filter(curuser_ID=user_id)
     for team in teams_part_of:
         #TODO: go through this again with E-club and decide which parts to keep/remove
         if team.is_user_in_team: #user in team owns a portion of the teams valuation.
-            #net+= total_market_value_of_team/number_of_people_in_team (usually 4)
-            net+=(team.team_linked.Money+(0.34*team.team_linked.Induvidual_Unit_Share_Price)+(0.66*(team.team_linked.Team_valuation/team.team_linked.Teams_Number_of_shares_in_market)))/team.objects.filter(is_user_in_team=True,team_linked=team.team_linked).count()
+            #net+= total_valuation_of_team/number_of_people_in_team (usually 4)
+            net+=(find_current_valuation(team.team_linked))/Individual_LinktoTeam.objects.filter(is_user_in_team=True,team_linked=team.team_linked).count()
         else:
-            #net+= induvidual_assets
-            net+=(team.stocks*team.team_linked.Induvidual_Unit_Share_Price)
+            #net+= individual_assets
+            net+=(team.stocks*team.team_linked.Individual_Unit_Share_Price)
 
-#I am building a model that has two completely seperate sections. One for induvidual investors, and one for the teams to invest in each other. 
-#Each section/market has its own 1000 shares with its own seperate unit_share_prices.
-#The total valuation of a company is taken as a weighted avg of both the markets. 
-#valuation = 0.34 * (Induvidual_unit_share_price * 1000) + 0.66 * (teams_unit_share_price_price * 1000)
-#This creates a simpler system to make for me, and a simpler gamified system for the users, easy to grasp and play.
-#In the end, the teams with highest valuation get prizes, so do the induviduals with the highest net worth.
+    return(net)
 
+#In the end, the teams with highest valuation get prizes, so do the individuals with the highest net worth.
 
 class Team(m.Model): #a team is a company
     Name=m.CharField(max_length=50,null=False,unique=True)
     Base_Valuation=m.DecimalField(max_digits=200, decimal_places=2) #as provided by judges.
 
-    #An induvidual does not have as much money as a company.
-    #Hence, a Induvidual_unit_share_price is small and a Team_unit_share_price is higher.
+    #An individual does not have as much money as a company.
+    #Hence, a Individual_unit_share_price is small and a Team_unit_share_price is higher.
     #This feels intuitive and also makes it easier for the user to mentally manage both markets as he/she can know which market he is seeing just based on the price.
+    #To impliment this, we are having the same base valuation, and having the individual_number_of_shares_in_market=10xhigher than the teams_number_of_shares_in_the_market
+    #then placing individual asks at base_valuation/individual_number_of_shares_in_market
+    #other teams can buy shares from the company at current_valuation/Teams_Number_of_shares_in_market
 
-    #There are two ways to achieve this. 
-    # 1)    We could have different Base valuations for each such as 100000$ for Team_base_valuation and 1000$ for induviduals_base_valuation.
-    #       Then split each up into 1000 shares. but this is unrealistic, wierd and incosnistent. 
-    #       It could be confusing for a user to see two base valuations for the same company. 
-    #       Further, total_valuation = Treasury+(0.34*induvidual_valuation)+(0.66*team_valuation)
-    #       where induvidual_valuation=(induvidual_number_of_shares*induvidual_unit_share_price)*100 which is just wierd.
-    
-    # 2)    We keep one common base valuation, say 100000$. 
-    #       Then we split up into 1000 shares for teams aspect, and 10000 shares for induviduals aspect.
-    #       Hence, consistent, clear, intuitive and total_valuation = Treasury+(0.34*induvidual_valuation)+(0.66*team_valuation)
-    #       individual valuation = induvidual_number_of_shares*induvidual_unit_share_price which is intuitive and makes sense.
-    #Hence we are following the second model.
-
-    Induvidual_Number_of_shares_in_market=m.BigIntegerField(default=10000) #this is number of total shares
+    Individual_Number_of_shares_in_market=m.BigIntegerField(default=10000) #this is number of total shares
     #we dont really care about how many shares are still owned by the company.
-    Induvidual_Unit_Share_Price=m.DecimalField(max_digits=100, decimal_places=2) 
-
-    #induvidual aspect:
-    #   initially, all 10000 shares are with the company. The users have to buy it from the company at base_valuation/10000. Amount from that goes into the treasury.
-    #   if there are any shares still left with the company, it doesnt matter for valuation calculations as we are doing unit_share_price*10000 anyways.
-    #   we achieve this by having the company place 10000 bids at base_valuation/10000 at first.
-    #same thing for teams aspect where the money from selling the shares go into company trasury.
+    Individual_Unit_Share_Price=m.DecimalField(max_digits=100, decimal_places=2) 
 
     Teams_Number_of_shares_in_market=m.BigIntegerField(default=1000) #this is total number of shares
     Teams_number_of_shares_with_company=m.BigIntegerField(default=1000) #this is number of unsold shares. (still with company)
-    Teams_current_valuation=m.DecimalField(max_digits=100, decimal_places=2) #unit share price is valuation/number of shares in market
 
     News_and_updates=m.TextField(max_length=100000,blank=True,null=True) #not creating a table for now, manage with protocols and norms for now while dealing with this data.
 
     Money=m.DecimalField(max_digits=100, decimal_places=2, default=0) #Treasury in hand for investing. (liquid)
 
-    #total valuation = Money (aka treasury)+(0.34*induvidual_valuation)+(0.66*team_valuation)
-    #induvidual_valuation = induvidual_number_of_shares*induvidual_unit_share_price
-    #initially team_valuation is given by judges. 
-    #Later, team_valuation is calculated using:
-    #   New_valuation_of_invested_company= Base_valuation_of_invested_company((1+Number_of_Companies_investing(.3))+(1+Number_of_Shares_bought(.002)))
-
-    #so at first, the base_valuation = Money (aka treasury.) (fully liquid.)
-    #Then the company starts buying other company's shares. (some liquid, some non liquid) (from the company itself or from other teams)
-    #   they can then sell these shares at a profit and increase their treasury and hence their valuation. or sell at loss and decrease. (sell to other teams)
-    #The treasury can also decrease when they lose money according to the dice roll and hence, the valuation decreases.
-    #The valuation can also increase based on the formula as more teams invest in them and buy more of their shares.
-
-    #at first, the company sells the induvidual_valuations and hence gets that money directly into treasury increasing valuation.
-    #after that, the induvidual valuation is based purely on the unit_share_price as in the real world.
-
     def __str__(self): #TODO: make this more readable in future.
-        return f"{self.Name}-{self.Money+(0.34*self.Induvidual_Unit_Share_Price)+(0.66*(self.Team_valuation/self.Teams_Number_of_shares_in_market))}-{self.Team_valuation/self.Teams_Number_of_shares_in_market}-{self.Induvidual_Unit_Share_Price}-{self.Money}"
+        return f"{self.Name}-{find_current_valuation(self)}"
 
 
-#Following are the induvidual specific:
+
+#Following are all the team models:
+
+#in this system, shares are bought at unit_share_price. there are no bids and asks. a company just decides to buy x shares of another company.
+# when a team buys a company's shares, the amount is deducted from the Money of the team and added to the Money of the company.
+# A team can invest in only one other team at a time. 
+#There is buying (only from the company youre investing in (any number of times)) and no selling.
+
+class completed_investments(m.Model): #keeps a track of which companies have invested in which buying how many shares at what price when.
+    team_buying=m.ForeignKey(Team,on_delete=m.CASCADE,null=False,blank=False,related_name="team_buying_shares")
+    shares_of_company=m.ForeignKey(Team,on_delete=m.CASCADE,null=False,blank=False,related_name="company_whose_shares_are_being_bought")
+    numberofshares=m.BigIntegerField()
+    price_bought_at=m.DecimalField(max_digits=20, decimal_places=2,null=False)
+    bought_when=m.DateTimeField(auto_now_add=True)
+    last_interacted_with=m.DateTimeField(auto_now=True)
+    
+#This is to be interacted in views. when a team wants to invest in a particular company, this is created. Dice roll is to be used then.
+#The only thing i am considering affecting worth of any company is find_current_valuation which only uses formula. 
+
+
+
+#Following are the individual models:
+
+#TODO: consider adding a small cut per transaction to ensure no spam transactions causing market manipulations.
 
 @receiver(post_save,sender=Team)
-def make_initial_induvidual_asks_by_team(sender, instance, created, **kwargs):
+def make_initial_individual_asks_by_team(sender, instance, created, **kwargs):
     if created: #this is run when the team is first created. It places asks at askrpice=base_valuation/number_of_shares.
                 #the ask is then placed into the orderbook by the addask function.
                 #the ask matching is handled by the check_orders function wich makes a new ask with howmanyever shares are left and then stores the completed ask in the completed asks
-        initial_unit_share_price=(instance.Base_Valuation/instance.Induvidual_Number_of_shares_in_market)
-        price_to_place_ask_at=instance.Induvidual_Unit_Share_Price
-        Induvidual_Ask.objects.create(asking_team=instance,team_to_ask_on=instance,askprice=price_to_place_ask_at,noaskedshares=instance.Induvidual_Number_of_shares_in_market)
+        price_to_place_ask_at=instance.Individual_Unit_Share_Price #whatever price is set first (supposed to be base valuation/10000)
+        Individual_Ask.objects.create(asking_team=instance,team_to_ask_on=instance,askprice=price_to_place_ask_at,noaskedshares=instance.Individual_Number_of_shares_in_market)
 
-class Induvidual_LinktoTeam(m.Model): #A user links to any team via this. Team the user is part of, and teams the user has stocks in or has any data with.
+class Individual_LinktoTeam(m.Model): #A user links to any team via this. Team the user is part of, and teams the user has stocks in or has any data with.
     curuser=m.ForeignKey(User,on_delete=m.CASCADE,null=False)
     curuser_ID=m.ForeignKey(UsersID,on_delete=m.CASCADE,null=False) #when automating creation of this, must fill this.
     team_linked=m.ForeignKey(Team,on_delete=m.CASCADE,null=False) 
@@ -146,7 +151,7 @@ class Induvidual_LinktoTeam(m.Model): #A user links to any team via this. Team t
         return f"{self.curuser.username}-{self.team_linked.Name}-{'In team' if self.is_user_in_team else 'Not in team'}"
     
 
-class Induvidual_CommentonTeam(m.Model): #a model for users to comment on any team.
+class Individual_CommentonTeam(m.Model): #a model for users to comment on any team.
     commentinguser=m.ForeignKey(User,on_delete=m.CASCADE,null=False) #one to one field means user can comment only once.
     userid=m.ForeignKey(UsersID,on_delete=m.CASCADE,null=False)
     commentedteam=m.ForeignKey(Team,on_delete=m.CASCADE,null=False)
@@ -155,12 +160,12 @@ class Induvidual_CommentonTeam(m.Model): #a model for users to comment on any te
     last_interacted_with=m.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together=[['userid','commentedteam','comment']] #cant spam same comment in same team.
+        unique_together=[['userid','commentedteam','comment']] #cant spam same comment in same team. (however, can spam as long as 1-2 characters differ also. maybe fix?)
 
     def __str__(self):
         return f"{self.commentinguser.username}-{self.commentedteam.Name}-{self.comment}"
 
-class Induvidual_Bid(m.Model):
+class Individual_Bid(m.Model):
     bidder=m.ForeignKey(User,on_delete=m.CASCADE,null=False)
     bidder_ID=m.ForeignKey(UsersID,on_delete=m.CASCADE,null=False)
     team_to_bid_on=m.ForeignKey(Team,on_delete=m.CASCADE,null=False) #redundant for safety
@@ -181,7 +186,7 @@ class Induvidual_Bid(m.Model):
     def __str__(self):
         return f"{self.bidder.username}-{self.team_to_bid_on.Name}-{self.nobidshares} shares at {self.bidprice} each"
 
-class Induvidual_Ask(m.Model): 
+class Individual_Ask(m.Model): 
     asker=m.ForeignKey(User,on_delete=m.CASCADE,null=True,blank=True) #putting null=True since we can also have an asking team without an asking person as initially.
     asker_ID=m.ForeignKey(UsersID,on_delete=m.CASCADE,null=True,blank=True)
 
@@ -203,7 +208,7 @@ class Induvidual_Ask(m.Model):
         ]
 
     def __str__(self):
-        return f"{self.asker.username if self.asker is not None else self.asking_team}-{self.team_to_ask_on.Name}-{self.noaskedshares} shares at {self.askprice} each"
+        return f"{self.asker.username if self.asker is not None else str(self.asking_team)}-{self.team_to_ask_on.Name}-{self.noaskedshares} shares at {self.askprice} each"
 
 #Consider this: (consider it for completed_asks also)
 # from django.core.exceptions import ValidationError
@@ -215,41 +220,41 @@ class Induvidual_Ask(m.Model):
 #         raise ValidationError("Either 'asker' or 'asking_team' must be set.")
 #And don't forget to call .full_clean() before saving in custom logic (if needed), or rely on Django admin/forms to enforce it.
 
-@receiver(post_save,sender=Induvidual_Bid)
+@receiver(post_save,sender=Individual_Bid)
 def addbid(sender, instance, created, **kwargs): #adding ask to order book of the team the moment it is saved. 
     #(BIDS CANNOT BE EDITED AS IT WILL BE RE ADDED TO THE ORDER BOOK WITHOUT ANY CHANGE. INSTEAD BIDS MUST BE DELETED AND NEW ASK MADE.)
     if created:
-        mylink=Induvidual_LinktoTeam.objects.filter(team_linked=instance.team_to_bid_on,curuser=instance.bidder)
+        mylink=Individual_LinktoTeam.objects.filter(team_linked=instance.team_to_bid_on,curuser=instance.bidder)
         if mylink.exists(): 
             mylink=mylink[0]
         else: #creating a link if the link doesnt exist
-            mylink=Induvidual_LinktoTeam.objects.create(team_linked=instance.team_to_bid_on,curuser=instance.bidder,curuser_ID=instance.bidder_ID)
+            mylink=Individual_LinktoTeam.objects.create(team_linked=instance.team_to_bid_on,curuser=instance.bidder,curuser_ID=instance.bidder_ID)
         
         if mylink.curuser_ID.Money>=(instance.nobidshares*instance.bidprice): #making sure the user has the money to place a bid
-                orderbook,created= Induvidual_OrderBook.objects.get_or_create(team=instance.team_to_bid_on)
+                orderbook,created= Individual_OrderBook.objects.get_or_create(team=instance.team_to_bid_on)
                 orderbook.bids.add(instance)
-                Induvidual_OrderTransaction.objects.create(order_book=Induvidual_OrderBook.objects.get(team=instance.team_to_bid_on),bid=instance,executed_price=instance.bidprice)
+                Individual_OrderTransaction.objects.create(order_book=Individual_OrderBook.objects.get(team=instance.team_to_bid_on),bid=instance,executed_price=instance.bidprice)
 
-@receiver(post_save,sender=Induvidual_Ask) #to place an ask, you must already have shares in the company and hence already have a teamlink
+@receiver(post_save,sender=Individual_Ask) #to place an ask, you must already have shares in the company and hence already have a teamlink
 def addask(sender, instance,created, **kwargs): #adding ask to order book of the team the moment it is saved. 
     #(ASKS CANNOT BE EDITED AS IT WILL BE RE ADDED TO THE ORDER BOOK WITHOUT ANY CHANGE. INSTEAD ASK MUST BE DELETED AND NEW ASK MADE.)
     if created:
-        if instance.asker is not None: #This is for induviduals placing the ask.
-            mylink=Induvidual_LinktoTeam.objects.filter(team_linked=instance.team_to_ask_on,curuser=instance.asker)
+        if instance.asker is not None: #This is for individuals placing the ask.
+            mylink=Individual_LinktoTeam.objects.filter(team_linked=instance.team_to_ask_on,curuser=instance.asker)
             if mylink.exists() and mylink[0].stocks>=instance.noaskedshares: #making sure the user has the stocks to place an ask
-                orderbook,created=Induvidual_OrderBook.objects.get_or_create(team=instance.team_to_ask_on)
+                orderbook,created=Individual_OrderBook.objects.get_or_create(team=instance.team_to_ask_on)
                 orderbook.asks.add(instance)
-                Induvidual_OrderTransaction.objects.create(order_book=Induvidual_OrderBook.objects.get(team=instance.team_to_ask_on),ask=instance,executed_price=instance.askprice)
+                Individual_OrderTransaction.objects.create(order_book=Individual_OrderBook.objects.get(team=instance.team_to_ask_on),ask=instance,executed_price=instance.askprice)
         else: #If a team places the ask as in the initial condition, there is no link. The ask just gets added to the orderbook and ordertransaction.
-            orderbook,created=Induvidual_OrderBook.objects.get_or_create(team=instance.team_to_ask_on)
+            orderbook,created=Individual_OrderBook.objects.get_or_create(team=instance.team_to_ask_on)
             orderbook.asks.add(instance)
-            Induvidual_OrderTransaction.objects.create(order_book=Induvidual_OrderBook.objects.get(team=instance.team_to_ask_on),ask=instance,executed_price=instance.askprice)
+            Individual_OrderTransaction.objects.create(order_book=Individual_OrderBook.objects.get(team=instance.team_to_ask_on),ask=instance,executed_price=instance.askprice)
             #TODO: make this more efficient by removing the unnessecary get of order book while creating order transaction. as we already have orderbook.
 
-class Induvidual_OrderBook(m.Model): #maybe this method of doing it is making the db a little too complicated. But using this for now.
+class Individual_OrderBook(m.Model): #maybe this method of doing it is making the db a little too complicated. But using this for now.
     team=m.ForeignKey(Team,on_delete=m.DO_NOTHING,null=False)
-    bids=m.ManyToManyField(Induvidual_Bid)
-    asks=m.ManyToManyField(Induvidual_Ask)
+    bids=m.ManyToManyField(Individual_Bid)
+    asks=m.ManyToManyField(Individual_Ask)
     placedwhen=m.DateTimeField(auto_now_add=True)
     last_interacted_with=m.DateTimeField(auto_now=True)
     other_deets=m.TextField(max_length=10000000,blank=True,null=True) #consider JSONField
@@ -259,11 +264,11 @@ class Induvidual_OrderBook(m.Model): #maybe this method of doing it is making th
     
     #consider adding unique together bids asks and team so that the same bid isnt spammed many times?
 
-#This is a through model for Induvidual_order_book.
-class Induvidual_OrderTransaction(m.Model):
-    order_book = m.ForeignKey(Induvidual_OrderBook, on_delete=m.CASCADE)
-    bid = m.ForeignKey(Induvidual_Bid, on_delete=m.CASCADE,blank=True,null=True)
-    ask = m.ForeignKey(Induvidual_Ask, on_delete=m.CASCADE,blank=True,null=True)
+#This is a through model for Individual_order_book.
+class Individual_OrderTransaction(m.Model):
+    order_book = m.ForeignKey(Individual_OrderBook, on_delete=m.CASCADE)
+    bid = m.ForeignKey(Individual_Bid, on_delete=m.CASCADE,blank=True,null=True)
+    ask = m.ForeignKey(Individual_Ask, on_delete=m.CASCADE,blank=True,null=True)
     executed_price = m.DecimalField(max_digits=20, decimal_places=2)
     executed_at = m.DateTimeField(auto_now_add=True)
 
@@ -274,7 +279,7 @@ class Induvidual_OrderTransaction(m.Model):
             return f"ask at {self.executed_price}"
     
 
-class Induvidual_CompletedBids(m.Model):
+class Individual_CompletedBids(m.Model):
     bidder=m.ForeignKey(User,on_delete=m.CASCADE,null=False)
     bidder_ID=m.ForeignKey(UsersID,on_delete=m.CASCADE,null=False)
     team_to_bid_on=m.ForeignKey(Team,on_delete=m.CASCADE,null=False) #redundant for safety
@@ -287,7 +292,7 @@ class Induvidual_CompletedBids(m.Model):
     def __str__(self):
         return f"{self.bidder.username}-{self.team_to_bid_on.Name}-{self.nobidshares} shares at {self.bidprice} each"
 
-class Induvidual_CompletedAsks(m.Model): 
+class Individual_CompletedAsks(m.Model): 
     asker=m.ForeignKey(User,on_delete=m.CASCADE,null=True,blank=True)
     asker_ID=m.ForeignKey(UsersID,on_delete=m.CASCADE,null=True,blank=True)
 
@@ -301,26 +306,29 @@ class Induvidual_CompletedAsks(m.Model):
     closed_with=m.CharField(max_length=500000,blank=True,null=True,unique=True)
 
     def __str__(self):
-        return f"{self.asker.username if self.asker is not None else self.asking_team}-{self.team_to_ask_on.Name}-{self.noaskedshares} shares at {self.askprice} each"
+        return f"{self.asker.username if self.asker is not None else str(self.asking_team)}-{self.team_to_ask_on.Name}-{self.noaskedshares} shares at {self.askprice} each"
 
-class Induvidual_CompletedTransaction(m.Model): #order book not needed since its just data and pairs of bids and asks being added together.
-    completed_bid = m.ForeignKey(Induvidual_CompletedBids, on_delete=m.CASCADE,blank=False,null=False)
-    completed_ask = m.ForeignKey(Induvidual_CompletedAsks, on_delete=m.CASCADE,blank=False,null=False)
+class Individual_CompletedTransaction(m.Model): #order book not needed since its just data and pairs of bids and asks being added together.
+    completed_bid = m.ForeignKey(Individual_CompletedBids, on_delete=m.CASCADE,blank=False,null=False)
+    completed_ask = m.ForeignKey(Individual_CompletedAsks, on_delete=m.CASCADE,blank=False,null=False)
     executed_price = m.DecimalField(max_digits=20, decimal_places=2)
     made_at = m.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"completed ask-bid at {self.executed_price}"
  
-@receiver(post_save,sender=Induvidual_OrderTransaction) #matches and executes orders #TODO:IMP initial team asks condition to be implimented here.
-def check_orders(sender, instance, **kwargs): #yes i know its innefficient, im just doing it for da vibes. (fr tho, fix it.)
-    IOB=instance.order_book #IOB as in induvidual order book
+ #figure out async implimentations and ensure no race condition issues. 
+ # (also, if any one of the saves fails, it might mess up the rest, etc. some django_atomic is a solution apparently.)
+
+@receiver(post_save,sender=Individual_OrderTransaction) #matches and executes orders #TODO:IMP initial team asks condition to be implimented here.
+def check_orders(sender, instance, **kwargs): #yes i know its innefficient, im just doing it for da vibes. (fr tho, fix it eventually.)
+    IOB=instance.order_book #IOB as in individual order book
     for bid in IOB.bids.all():
         for ask in IOB.asks.all():
             if ask.askprice<=bid.bidprice:
                 if ask.asker is not None: #For asks placed by people
-                    linkbid=Induvidual_LinktoTeam.objects.filter(curuser=bid.bidder, team_linked=IOB.team)
-                    linkask=Induvidual_LinktoTeam.objects.filter(curuser=ask.asker, team_linked=IOB.team)
+                    linkbid=Individual_LinktoTeam.objects.filter(curuser=bid.bidder, team_linked=IOB.team)
+                    linkask=Individual_LinktoTeam.objects.filter(curuser=ask.asker, team_linked=IOB.team)
                     if linkbid.exists() and linkask.exists():
                         linkbid,linkask=linkbid[0],linkask[0]
 
@@ -342,14 +350,14 @@ def check_orders(sender, instance, **kwargs): #yes i know its innefficient, im j
                             linkask.curuser_ID.Money+=moneytobecutfrombidder
                             linkbid.stocks+=stockstoberemovedfromasker 
 
-                            IOB.team.Induvidual_Unit_Share_Price=ask.askprice #market value to reflect latest sold value.
+                            IOB.team.Individual_Unit_Share_Price=ask.askprice #market value to reflect latest sold value.
 
                             bid.closed_with=str(ask.id) #(will not trigger a orderbook save dw.)
                             ask.closed_with=str(bid.id)
 
-                            completedbid=Induvidual_CompletedBids.objects.create(bidder=bid.bidder,bidder_ID=bid.bidder_ID,team_to_bid_on=IOB.team,bidprice=bid.bidprice,nobidshares=bid.nobidshares,bidwhen=bid.bidwhen,last_interacted_with=bid.last_interacted_with,closed_with=bid.closed_with)
-                            completedask=Induvidual_CompletedAsks.objects.create(asker=ask.asker,asker_ID=ask.asker_ID,team_to_ask_on=IOB.team,askprice=ask.askprice,noaskedshares=ask.noaskedshares,askedwhen=ask.askedwhen,last_interacted_with=ask.last_interacted_with,closed_with=ask.closed_with)
-                            Induvidual_CompletedTransaction.objects.create(completed_bid=completedbid,completed_ask=completedask,executed_price=ask.askprice)
+                            completedbid=Individual_CompletedBids.objects.create(bidder=bid.bidder,bidder_ID=bid.bidder_ID,team_to_bid_on=IOB.team,bidprice=bid.bidprice,nobidshares=bid.nobidshares,bidwhen=bid.bidwhen,last_interacted_with=bid.last_interacted_with,closed_with=bid.closed_with)
+                            completedask=Individual_CompletedAsks.objects.create(asker=ask.asker,asker_ID=ask.asker_ID,team_to_ask_on=IOB.team,askprice=ask.askprice,noaskedshares=ask.noaskedshares,askedwhen=ask.askedwhen,last_interacted_with=ask.last_interacted_with,closed_with=ask.closed_with)
+                            Individual_CompletedTransaction.objects.create(completed_bid=completedbid,completed_ask=completedask,executed_price=ask.askprice)
 
                             #Transaction book will be deleted by cascade
                             #Order book automatically doesnt have them.
@@ -370,15 +378,15 @@ def check_orders(sender, instance, **kwargs): #yes i know its innefficient, im j
 
                             if completedask.noaskedshares>completedbid.nobidshares:
                                 #make a new ask with how many ever remain.                            
-                                Induvidual_Ask.objects.create(asker=completedask.asker,asker_ID=completedask.asker_ID,team_to_ask_on=IOB.team,askprice=completedask.askprice,noaskedshares=completedask.noaskedshares-completedbid.nobidshares)
+                                Individual_Ask.objects.create(asker=completedask.asker,asker_ID=completedask.asker_ID,team_to_ask_on=IOB.team,askprice=completedask.askprice,noaskedshares=completedask.noaskedshares-completedbid.nobidshares)
                                 #when new ask created, it will trigger an ask save which will trigger a orderbook save which will trigger this to start all over so all the recent biddings get checked again.
                             elif completedask.noaskedshares<completedbid.nobidshares:
                                 #make a new bid with howmanyever remain                            
-                                Induvidual_Bid.objects.create(bidder=completedbid.bidder,bidder_ID=completedbid.bidder_ID,team_to_bid_on=IOB.team,bidprice=completedbid.bidprice,nobidshares=completedbid.nobidshares-completedask.noaskedshares)
+                                Individual_Bid.objects.create(bidder=completedbid.bidder,bidder_ID=completedbid.bidder_ID,team_to_bid_on=IOB.team,bidprice=completedbid.bidprice,nobidshares=completedbid.nobidshares-completedask.noaskedshares)
                                 #when new bid created, it will trigger an bid save which will trigger a orderbook save which will trigger this to start all over so all the recent biddings get checked again.
 
                 else: #if its the team that has made the ask as in intial condition where team has all the shares:
-                    linkbid=Induvidual_LinktoTeam.objects.filter(curuser=bid.bidder, team_linked=IOB.team)
+                    linkbid=Individual_LinktoTeam.objects.filter(curuser=bid.bidder, team_linked=IOB.team)
                     if linkbid.exists() and ask.asking_team is not None:
                         asking_team=ask.asking_team
                         linkbid=linkbid[0]
@@ -400,14 +408,14 @@ def check_orders(sender, instance, **kwargs): #yes i know its innefficient, im j
                             asking_team.Money+=moneytobecutfrombidder
                             linkbid.stocks+=stockstoberemovedfromasker 
 
-                            IOB.team.Induvidual_Unit_Share_Price=ask.askprice #market value to reflect latest sold value.
+                            IOB.team.Individual_Unit_Share_Price=ask.askprice #market value to reflect latest sold value.
 
                             bid.closed_with=str(ask.id) #(will not trigger a orderbook save dw.)
                             ask.closed_with=str(bid.id)
 
-                            completedbid=Induvidual_CompletedBids.objects.create(bidder=bid.bidder,bidder_ID=bid.bidder_ID,team_to_bid_on=IOB.team,bidprice=bid.bidprice,nobidshares=bid.nobidshares,bidwhen=bid.bidwhen,last_interacted_with=bid.last_interacted_with,closed_with=bid.closed_with)
-                            completedask=Induvidual_CompletedAsks.objects.create(asking_team=asking_team,team_to_ask_on=IOB.team,askprice=ask.askprice,noaskedshares=ask.noaskedshares,askedwhen=ask.askedwhen,last_interacted_with=ask.last_interacted_with,closed_with=ask.closed_with)
-                            Induvidual_CompletedTransaction.objects.create(completed_bid=completedbid,completed_ask=completedask,executed_price=ask.askprice)
+                            completedbid=Individual_CompletedBids.objects.create(bidder=bid.bidder,bidder_ID=bid.bidder_ID,team_to_bid_on=IOB.team,bidprice=bid.bidprice,nobidshares=bid.nobidshares,bidwhen=bid.bidwhen,last_interacted_with=bid.last_interacted_with,closed_with=bid.closed_with)
+                            completedask=Individual_CompletedAsks.objects.create(asking_team=asking_team,team_to_ask_on=IOB.team,askprice=ask.askprice,noaskedshares=ask.noaskedshares,askedwhen=ask.askedwhen,last_interacted_with=ask.last_interacted_with,closed_with=ask.closed_with)
+                            Individual_CompletedTransaction.objects.create(completed_bid=completedbid,completed_ask=completedask,executed_price=ask.askprice)
 
                             #Transaction book will be deleted by cascade
                             #Order book automatically doesnt have them.
@@ -427,18 +435,13 @@ def check_orders(sender, instance, **kwargs): #yes i know its innefficient, im j
 
                             if completedask.noaskedshares>completedbid.nobidshares:
                                 #make a new ask with how many ever remain.                            
-                                Induvidual_Ask.objects.create(asking_team=completedask.asking_team,team_to_ask_on=IOB.team,askprice=completedask.askprice,noaskedshares=completedask.noaskedshares-completedbid.nobidshares)
+                                Individual_Ask.objects.create(asking_team=completedask.asking_team,team_to_ask_on=IOB.team,askprice=completedask.askprice,noaskedshares=completedask.noaskedshares-completedbid.nobidshares)
                                 #when new ask created, it will trigger an ask save which will trigger a orderbook save which will trigger this to start all over so all the recent biddings get checked again.
                             elif completedask.noaskedshares<completedbid.nobidshares:
                                 #make a new bid with howmanyever remain                            
-                                Induvidual_Bid.objects.create(bidder=completedbid.bidder,bidder_ID=completedbid.bidder_ID,team_to_bid_on=IOB.team,bidprice=completedbid.bidprice,nobidshares=completedbid.nobidshares-completedask.noaskedshares)
+                                Individual_Bid.objects.create(bidder=completedbid.bidder,bidder_ID=completedbid.bidder_ID,team_to_bid_on=IOB.team,bidprice=completedbid.bidprice,nobidshares=completedbid.nobidshares-completedask.noaskedshares)
                                 #when new bid created, it will trigger an bid save which will trigger a orderbook save which will trigger this to start all over so all the recent biddings get checked again.
 
-
-#Following are all the team models:
-
-#in this system, shares are bought at market price. there are no bids and asks. a company just decides to buy x shares of another company.
-#
 
 
 

@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required,user_passes_test
 from django.contrib.auth import authenticate,login,logout #imported for the user login
 from django.contrib import messages #this is what we import to get flash messages.
 
-#dont forget to think about volumes, not just values.
+#dont forget to think about volumes, not just values. (for all)
 
 # Create your views here.
 @login_required(login_url='login')
