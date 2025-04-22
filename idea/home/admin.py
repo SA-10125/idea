@@ -1,20 +1,21 @@
 from django.contrib import admin
 
 # Register your models here.
-from .models import GeneralData,ID,Team,LinktoTeam,CommentonTeam,Bid,Ask,OrderBook,OrderTransaction,CompletedAsks,CompletedBids,CompletedTransaction
+from .models import GeneralData,UsersID,Team,Individual_LinktoTeam,Individual_CommentonTeam,Individual_Bid,Individual_Ask,Individual_OrderBook,Individual_OrderTransaction,Individual_CompletedAsks,Individual_CompletedBids,Individual_CompletedTransaction,Team_LinktoTeam
 
 admin.site.register(GeneralData)
-admin.site.register(ID)
+admin.site.register(UsersID)
 admin.site.register(Team)
-admin.site.register(LinktoTeam)
-admin.site.register(CommentonTeam)
-admin.site.register(Bid)
-admin.site.register(Ask)
-admin.site.register(OrderBook)
-admin.site.register(OrderTransaction)
-admin.site.register(CompletedAsks)
-admin.site.register(CompletedBids)
-admin.site.register(CompletedTransaction)
+admin.site.register(Individual_LinktoTeam)
+admin.site.register(Individual_CommentonTeam)
+admin.site.register(Individual_Bid)
+admin.site.register(Individual_Ask)
+admin.site.register(Individual_OrderBook)
+admin.site.register(Individual_OrderTransaction)
+admin.site.register(Individual_CompletedAsks)
+admin.site.register(Individual_CompletedBids)
+admin.site.register(Individual_CompletedTransaction)
+admin.site.register(Team_LinktoTeam)
 
 #I come into the website, I see the total's trends and news, and the top performing teams, there is a login button, if logged in, let it be a profile button.
 #in the side panel, is a list of all the teams based on performance and/or volume. all clickable.
