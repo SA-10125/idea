@@ -5,6 +5,7 @@ from django.db.models.signals import post_save,pre_delete
 from django.dispatch import receiver 
 from csv import writer #for the data.csv file.
 import random
+from django.utils.timezone import now #for current time (for loan calcis)
 
 #I have used the term Vibe-coding in past comments, I did not know the meaning at the time and thought it meant coding for da vibes without worrying about efficiency and stuff. Just getting it to work.
 
@@ -102,7 +103,27 @@ class Team(m.Model): #a team is a company
     def __str__(self): #TODO: make this more readable in future.
         return f"{self.Name}-{find_current_valuation(self)}"
 
+class Loans(m.Model):
+    team_taking_loan=m.ForeignKey(Team,null=False,on_delete=m.CASCADE,related_name="taking_loan")
+    principal=m.DecimalField(max_digits=100, decimal_places=2) 
+    interest=m.DecimalField(max_digits=5,decimal_places=4, default=0.15) #(default=15% interest)
+    #consider creditworthyness to raise a warning when taking the loan? 
+    #consider approvals of loans by admins before they are handed out.
+    # is_approved_by_admin = m.BooleanField(default=False)
+    #no tenure, should be checked if its repayed by end of event. interest to be calculated per hour? 
+    # (calculate net payable amount with compound interest at the end of the event btw. if they have it at that moment, reduce it from their treasury, else reduce their collateral stocks if its enough?, talk to E-club)
+    #talk with E-club about collateral to keep or not.
+    collateral_shares_of_company=m.ForeignKey(Team,on_delete=m.DO_NOTHING,null=True,blank=True,related_name="collateral") #the team should have shares in this company that they keep as collateral.
+    # since this is m.DO_NOTHING, loan.collateral_shares_of_company.name  Will throw error if thats deleted.
+    #Total Payable=𝑃*((1+𝑟)**𝑡)
+    when_taken=m.DateTimeField(auto_now_add=True) #subtract this from current time at end of event to check t (in hours)
+    has_been_payed=m.BooleanField(default=False,null=False) #update at end of event. that way, easy to check who to disqualify.
 
+    def calculate_total_payable(self, current_time=None): #this is from chatgpt, remove later.
+        if current_time is None: 
+            current_time = now() #now is from django-timezone
+        elapsed_hours = (current_time - self.when_taken).total_seconds() / 3600
+        return self.principal*((1 + float(self.interest)) ** elapsed_hours) #Total Payable=𝑃*((1+𝑟)**𝑡)
 
 #Following are all the team models:
 
@@ -110,19 +131,23 @@ class Team(m.Model): #a team is a company
 # when a team buys a company's shares, the amount is deducted from the Money of the team and added to the Money of the company.
 # A team can invest in only one other team at a time. 
 #There is buying (only from the company youre investing in (any number of times)) and no selling.
-
-class completed_investments(m.Model): #keeps a track of which companies have invested in which buying how many shares at what price when.
-    team_buying=m.ForeignKey(Team,on_delete=m.CASCADE,null=False,blank=False,related_name="team_buying_shares")
-    shares_of_company=m.ForeignKey(Team,on_delete=m.CASCADE,null=False,blank=False,related_name="company_whose_shares_are_being_bought")
+    
+class Team_LinktoTeam(m.Model): #used to store data about the relation of the teams
+    team_investing=m.ForeignKey(Team,on_delete=m.CASCADE, null=False, related_name="team_buying_shares")
+    invested_in_team=m.ForeignKey(Team,on_delete=m.CASCADE, null=False, related_name="Investing_in_this_team")
     numberofshares=m.BigIntegerField()
     price_bought_at=m.DecimalField(max_digits=20, decimal_places=2,null=False)
     bought_when=m.DateTimeField(auto_now_add=True)
     last_interacted_with=m.DateTimeField(auto_now=True)
-    
+    timeouts=m.DateTimeField(null=True,blank=True) #set using norms like 20 mins from now(), etc.
+    alert_prices=alert_prices=m.CharField(max_length=100000,blank=True,null=True) #set alert prices following a norm. #consider using json fields
+    #TODO: handle same team investing in same company by updating the same linkage.
+
+    class Meta:
+        unique_together=[['team_investing','invested_in_team']] #each team can only be linked to the company once.
+
 #This is to be interacted in views. when a team wants to invest in a particular company, this is created. Dice roll is to be used then.
 #The only thing i am considering affecting worth of any company is find_current_valuation which only uses formula. 
-
-
 
 #Following are the individual models:
 
