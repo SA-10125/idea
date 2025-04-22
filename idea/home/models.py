@@ -41,7 +41,7 @@ def makeID(sender, instance, created, **kwargs):
         UsersID.objects.create(user=instance,IDNum=newID)
 
 def find_current_valuation(team):
-    C=len(completed_investments.objects.filter(shares_of_company=team)) #number of teams invested in this company
+    C=len(Team_LinktoTeam.objects.filter(invested_in_team=team)) #number of teams invested in this company
     S=team.Teams_Number_of_shares_in_market-team.Teams_Number_of_shares_with_company #number of shares this company has sold
 
     Initial_Unit_Share_Price=team.Base_Valuation/team.Individual_Number_of_shares_in_market #(assuming no new shares are added in the market)
