@@ -12,7 +12,7 @@ from django.utils.timezone import now #for current time (for loan calcis)
 #This is just coded for da vibes, not to be used in prod.
 
 #TODO: When a company valuation changes, everyone with their stocks should have net worth change? (OR Calculate net worths when needed using current valuations of companies?)
-#TODO: Calculate peak and total_market_value dynamically to show btw.
+#TODO: Calculate peak and total_market_v4alue dynamically to show btw.
 
 class GeneralData(m.Model): #a model for general data
     temp=m.CharField(max_length=50000,blank=True,null=True) #general data will be added in later. if anything needed for now, put here.
@@ -109,6 +109,7 @@ class Loans(m.Model):
     #consider creditworthyness to raise a warning when taking the loan? 
     #consider approvals of loans by admins before they are handed out.
     # is_approved_by_admin = m.BooleanField(default=False)
+    drawn=m.BooleanField(default=False) #wether the amount has been added to the team's treasury after loan is approved.
     #no tenure, should be checked if its repayed by end of event. interest to be calculated per hour? 
     # (calculate net payable amount with compound interest at the end of the event btw. if they have it at that moment, reduce it from their treasury, else reduce their collateral stocks if its enough?, talk to E-club)
     #talk with E-club about collateral to keep or not.
@@ -123,6 +124,15 @@ class Loans(m.Model):
             current_time = now() #now is from django-timezone
         elapsed_hours = (current_time - self.when_taken).total_seconds() / 3600
         return self.principal*((1 + float(self.interest)) ** elapsed_hours) #Total Payable=𝑃*((1+𝑟)**𝑡)
+
+@receiver(post_save,sender=Loans)
+def add_loan_amt_to_treasury(sender, instance, created, **kwargs):
+    if not instance.drawn: #and instance.is_approved_by_admin:
+        instance.team_taking_loan.Money+=instance.principal
+        instance.drawn=True
+        instance.team_taking_loan.save(update_fields=["Money"]) #update_fields=["Money"] is to only change that and improve performance
+        #TODO: impliment such update_fields=["Money"] in other places too to increase efficiency.
+        instance.save(update_fields=["drawn"])
 
 #Following are all the team models:
 
