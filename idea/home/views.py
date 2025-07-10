@@ -26,6 +26,7 @@ def seeteam(request,pk):
         context["user"]=request.user #add if the user is the author of the blog in html etc.
 
     context["team"]=Team.objects.get(Name=pk) #might change this to UID if needed.
+    context["current_valuation"]=find_current_valuation(context["team"])
 
     return render(request, 'seeteam.html',context)
 
@@ -53,3 +54,12 @@ def logout_page(request):
     #consider general data record(logouts)?
     logout(request)
     return(redirect('login'))
+
+#TODO: I was here.
+@login_required(login_url='login')#TODO: Do this properly with all checks and all making sure they can place.
+def placebid(request,pk):
+    pass
+
+@login_required(login_url='login')
+def placeask(request,pk):
+    pass

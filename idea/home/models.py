@@ -5,7 +5,16 @@ from django.db.models.signals import post_save,pre_delete
 from django.dispatch import receiver 
 from csv import writer #for the data.csv file.
 import random
+import secrets #a better random.
 from django.utils.timezone import now #for current time (for loan calcis)
+from decimal import Decimal
+
+def dice_roll():
+    return secrets.randbelow(12) + 1  # 1-12
+
+#TODO: IMP possible major idea issue at make_initial_individual_asks_by_team
+#TODO: Discuss with team. Should the money in each induviudals wallet be 1/4th of their company's initial valuation/treasury before the event starts?
+#      Or should it start with all 100 to keep playing field more level or should it be 0?
 
 #I have used the term Vibe-coding in past comments, I did not know the meaning at the time and thought it meant coding for da vibes without worrying about efficiency and stuff. Just getting it to work.
 
@@ -46,7 +55,7 @@ def find_current_valuation(team):
     Initial_Unit_Share_Price=team.Base_Valuation/team.Individual_Number_of_shares_in_market #(assuming no new shares are added in the market)
     individuals_market_sentiment=(team.Individual_Unit_Share_Price-Initial_Unit_Share_Price)/team.Individual_Number_of_shares_in_market
     
-    current_valuation=(team.Base_Valuation*(1+(C*0.3))*(1+(S*0.002))*(1+(individuals_market_sentiment*0.05))) #the 0.05 is changable.
+    current_valuation=(team.Base_Valuation*Decimal((1+(C*0.3))*(1+(S*0.002)))*(Decimal(1)+(individuals_market_sentiment*Decimal(0.05)))) #the 0.05 is changable.
     
     return(current_valuation)
     #so, treasury, price that the company's shares were bought at, etc dont directly influence current valuation. 
@@ -77,7 +86,8 @@ def find_net_worth(user_id):
 
 #In the end, the teams with highest valuation get prizes, so do the individuals with the highest net worth.
 
-class Team(m.Model): #a team is a company
+#TODO: On save, make it calculate market price by itself or make market price optional.
+class Team(m.Model): #a team is a company 
     Name=m.CharField(max_length=50,null=False,unique=True)
     Base_Valuation=m.DecimalField(max_digits=200, decimal_places=2) #as provided by judges.
 
@@ -93,14 +103,17 @@ class Team(m.Model): #a team is a company
     Individual_Unit_Share_Price=m.DecimalField(max_digits=100, decimal_places=2) 
 
     Teams_Number_of_shares_in_market=m.BigIntegerField(default=1000) #this is total number of shares
-    Teams_number_of_shares_with_company=m.BigIntegerField(default=1000) #this is number of unsold shares. (still with company)
+    Teams_Number_of_shares_with_company=m.BigIntegerField(default=1000) #this is number of unsold shares. (still with company)
 
     News_and_updates=m.TextField(max_length=100000,blank=True,null=True) #not creating a table for now, manage with protocols and norms for now while dealing with this data.
 
     Money=m.DecimalField(max_digits=100, decimal_places=2, default=0) #Treasury in hand for investing. (liquid)
 
-    def __str__(self): #TODO: make this more readable in future.
-        return f"{self.Name}-{find_current_valuation(self)}"
+    def __str__(self): #TODO: Make this better for the love of god, maybe triggered by the save you could then later make a name?
+        try:
+            return f"{self.Name}-{find_current_valuation(self)}"
+        except AttributeError:
+            return f"{self.Name}"
 
 class Loans(m.Model):
     team_taking_loan=m.ForeignKey(Team,null=False,on_delete=m.CASCADE,related_name="taking_loan")
@@ -162,6 +175,8 @@ class Team_LinktoTeam(m.Model): #used to store data about the relation of the te
 
 #TODO: consider adding a small cut per transaction to ensure no spam transactions causing market manipulations.
 
+#MAJOR ISSUE, IMP
+#TODO: Possible issue, please discuss with Patro. If all the 10k shares are sold at the price_to_place_ask_at instead of market value, wont the market cap at that value until all 10k shares are bought, and only then can the market value go higher than that price_to_place_ask_at!!!
 @receiver(post_save,sender=Team)
 def make_initial_individual_asks_by_team(sender, instance, created, **kwargs):
     if created: #this is run when the team is first created. It places asks at askrpice=base_valuation/number_of_shares.
@@ -485,7 +500,7 @@ def check_orders(sender, instance, **kwargs): #yes i know its innefficient, im j
     #Please optimize these to reduce as much as possible and keep it minimal.
 #But I am not because:
     #This is because the data is just a backup and is fully optional.
-    #We need to reduce the network usage and server load as much as possible.
+    #We need to reduce the network usage and server load as much as possible
 
 # @receiver(pre_delete,sender=User) #users ID will be cascaded, so accounting for both.
 # def savegeneral(sender, instance, **kwargs):
@@ -503,83 +518,6 @@ def check_orders(sender, instance, **kwargs): #yes i know its innefficient, im j
 #     affected['teams_linked_to']=[f"team-{i.team_linked.Name}, is user in team={i.is_user_in_team}, alertprices={i.alert_prices}, stocks={i.stocks} at {i.team_linked.Individual_Unit_Share_Price} each at time of deletion" for i in Individual_LinktoTeam.objects.filter(curuser=instance)]
 #     affected['comments']=[f"{i.commentinguser} commented on {i.commentedteam.Name} at {i.whencommented} saying {i.comment}" for i in Individual_CommentonTeam.objects.filter(commentinguser=instance)]
 #     affected['bids']=[f" bidprice={i.bidprice} no_of_shares={i.nobidshares} team={i.team_to_bid_on.Name} when={i.bidwhen}, closed_with={i.closed_with}" for i in Individual_Bid.objects.filter(bidder=instance)]
-
 #     # asks, completed asks, bids
 
-
-# # @receiver(pre_delete,sender=Team) #YET TO TEST
-# # def saveteamhistory(sender, instance, **kwargs):
-# #     delTeam=instance
-# #     f=open('deleted_data.csv','a')
-# #     w=writer(f,lineterminator="\r")#if this still leaves blanks bw lines, use newline=''
-# #     affected={"deleted_obj":"Team"}
-# #     affected['Team']=[delTeam.Name]
-# #     affected['Shares in market']=[delTeam.Number_of_shares_in_market]
-# #     affected['Market Value']=[delTeam.Market_Value]
-# #     affected["News"]=[delTeam.News_and_updates]
-# #     affected['teamlinks']=[f"user-{i.curuser.username}, is user in team={i.is_user_in_team}, alertprices={i.alert_prices}, stocks={i.stocks} at {i.team_linked.Market_Value} each at time of deletion" for i in LinktoTeam.objects.filter(team_linked=delTeam)]
-# #     affected['comments']=[f"{i.commentinguser} commented on {i.commentedteam} at {i.whencommented} saying {i.comment}" for i in CommentonTeam.objects.filter(commentedteam=delTeam)]
-# #     #not adding OrderBook as I feel theres no point, instead ill add the Bids and Asks directly.
-# #     affected['bids']=[f"{i.bidder} bid {i.bidprice} on {i.nobidshares} shares of {i.team_to_bid_on} at {i.bidwhen}" for i in Bid.objects.filter(team_to_bid_on=delTeam)]
-# #     affected['asks']=[f"{i.asker} bid {i.askprice} on {i.noaskedshares} shares of {i.team_to_ask_on} at {i.askedwhen}" for i in Ask.objects.filter(team_to_ask_on=delTeam)]
-# #     w.writerow(list[affected.items()])
-# #     f.close()
-# #     #good luck to whoever has to retrieve data from this ngl. Its all there, just not in a convinient way. (will get into later)
-
-# # @receiver(pre_delete,sender=LinktoTeam) #YET TO TEST
-# # def saveteamlinkhistory(sender, instance, **kwargs):
-# #     delteamlink=instance
-# #     f=open('deleted_data.csv','a')
-# #     w=writer(f,lineterminator="\r")#if this still leaves blanks bw lines, use newline=''
-# #     affected={"deleted_obj":"teamlink"}
-# #     affected['teamlinks']=[f"user-{delteamlink.curuser.username},team-{delteamlink.team_linked.Name}, is user in team={delteamlink.is_user_in_team}, alertprices={delteamlink.alert_prices}, stocks={delteamlink.stocks} at {delteamlink.team_linked.Market_Value} each at time of deletion"]
-# #     w.writerow(list[affected.items()])
-# #     f.close()
-# #     #(nothing to cascade)
-
-# # @receiver(pre_delete,sender=CommentonTeam) #YET TO TEST
-# # def savecommenthistory(sender, instance, **kwargs):
-# #     i=instance
-# #     f=open('deleted_data.csv','a')
-# #     w=writer(f,lineterminator="\r")#if this still leaves blanks bw lines, use newline=''
-# #     affected={"deleted_obj":"commentonteam"}
-# #     affected['comments']=[f"{i.commentinguser} commented on {i.commentedteam} at {i.whencommented} saying {i.comment}"]
-# #     w.writerow(list[affected.items()])
-# #     f.close()
-# #     #(nothing to cascade)
-
-# # @receiver(pre_delete,sender=UsersID) #YET TO TEST
-# # def saveIDhistory(sender, instance, **kwargs): #idk how to handle multiple deletes happening at the same time.
-# #     delID=instance
-# #     f=open('deleted_data.csv','a')
-# #     w=writer(f,lineterminator="\r")#if this still leaves blanks bw lines, use newline=''
-# #     affected={"deleted_obj":"UsersID"}
-# #     affected['ID']=[delID.IDNum]
-# #     affected['User']=[delID.user]
-# #     affected['Money']=[delID.Money]
-# #     w.writerow(list[affected.items()])
-# #     f.close()
-# #     #(nothing to cascade)
-
-# # @receiver(pre_delete,sender=Bid) #YET TO TEST
-# # def savebidhistory(sender, instance, **kwargs):
-# #     i=instance
-# #     f=open('deleted_data.csv','a')
-# #     w=writer(f,lineterminator="\r")#if this still leaves blanks bw lines, use newline=''
-# #     affected={"deleted_obj":"bid"}
-# #     affected['bid']=[f"{i.UsersID}-{i.bidder} bid {i.bidprice} on {i.nobidshares} shares of {i.team_to_bid_on} at {i.bidwhen}, closed with {i.closed_with}"]
-# #     w.writerow(list[affected.items()])
-# #     f.close()
-# #     #(nothing to cascade)
-
-
-# # @receiver(pre_delete,sender=Ask) #YET TO TEST
-# # def saveaskhistory(sender, instance, **kwargs):
-# #     i=instance
-# #     f=open('deleted_data.csv','a')
-# #     w=writer(f,lineterminator="\r")#if this still leaves blanks bw lines, use newline=''
-# #     affected={"deleted_obj":"ask"}
-# #     affected['ask']=[f"{i.UsersID}-{i.asker} bid {i.askprice} on {i.noaskedshares} shares of {i.team_to_ask_on} at {i.askedwhen}, closed with {i.closed_with}"]
-# #     w.writerow(list[affected.items()])
-# #     f.close()
-# #     #(nothing to cascade)
+#and so on for each model and each effected attribute of other models too.
