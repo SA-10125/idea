@@ -3,27 +3,253 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{team.Name}}</title>
-    <p>{{team.Name}}</p>
-       <p>No of shares in Induvidual market: {{team.Individual_Number_of_shares_in_market}}</p>
-    <p></p>
-    <p>Induvidual Current Unit share price: {{team.Individual_Unit_Share_Price}}</p>
-    <p>Team number of shares in market: {{team.Teams_Number_of_shares_in_market}}</p>
-    <p> Current valuation of team: {{current_valuation}}</p>
-<p></p>
-<p></p>
-    <p>News: {{team.News_and_updates}}</p>
-<p></p>
-<a href="Bid/">Place Bid</a>
-<p></p>
-<a href="Ask/">Place Ask</a>
-<p></p>
-<p></p>   
-{% if admin %}
-<p>{{team.Old_order_book}}</p>
-{% endif %}
+    <title>{{ team.Name }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: #181a20;
+            color: #e0e0e0;
+            font-family: 'Montserrat', sans-serif;
+            margin: 0;
+            min-height: 100vh;
+        }
+        .container {
+            background: #23262f;
+            border-radius: 14px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.22);
+            max-width: 540px;
+            margin: 48px auto 0 auto;
+            padding: 38px 32px 32px 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        h1 {
+            color: #00c6cf;
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+        .section-title {
+            color: #ffd700;
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            margin-top: 18px;
+            letter-spacing: 0.5px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px 24px;
+            margin-bottom: 10px;
+        }
+        .stat-label {
+            color: #b2b2b2;
+            font-size: 1.02rem;
+            font-weight: 500;
+        }
+        .stat-value {
+            color: #e0e0e0;
+            font-size: 1.02rem;
+            font-weight: 600;
+            text-align: right;
+        }
+        .highlight {
+            color: #ffd700;
+            font-weight: 700;
+        }
+        .members-list {
+            background: #181a20;
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-bottom: 8px;
+            font-size: 1rem;
+            color: #00c6cf;
+        }
+        .members-list span {
+            color: #e0e0e0;
+            font-weight: 500;
+        }
+        .news-section {
+            background: #181a20;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-top: 10px;
+            color: #00c6cf;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+        .action-btn {
+            background: linear-gradient(90deg, #00c6cf 0%, #23262f 100%);
+            color: #fff;
+            font-weight: 700;
+            border: none;
+            border-radius: 8px;
+            padding: 14px 0;
+            font-size: 1.1rem;
+            width: 100%;
+            margin: 10px 0 0 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+            display: block;
+            text-align: center;
+            text-decoration: none;
+        }
+        .action-btn:hover {
+            background: linear-gradient(90deg, #ffd700 0%, #00c6cf 100%);
+            color: #181a20;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.28);
+        }
+        .order-book-section {
+            background: #23262f;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-top: 10px;
+            color: #ffd700;
+            font-size: 1rem;
+            font-weight: 500;
+            word-break: break-word;
+        }
+        .loans-section {
+            background: #23262f;
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-top: 10px;
+            color: #ff4d4f;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+        .team-links-section {
+            background: #181a20;
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-top: 10px;
+            color: #00c6cf;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+        .updated-section {
+            color: #b2b2b2;
+            font-size: 0.95rem;
+            text-align: right;
+            margin-top: -12px;
+        }
+        hr {
+            border: none;
+            border-top: 1px solid #282c34;
+            margin: 18px 0;
+        }
+        @media screen and (max-width: 600px) {
+            .container {
+                padding: 16px 4px 12px 4px;
+                max-width: 98vw;
+            }
+            h1 {
+                font-size: 1.3rem;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 10px 0;
+            }
+        }
+    </style>
 </head>
 <body>
+    <div class="message">
+      {% if messages %}
+        <ul class="messages"> <!--make grammatical changes lol-->
+          {% for msg in messages %}
+            <p>{{ msg }}</p>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+    <div class="container">
+        <h1>{{ team.Name }}</h1>
+        {% if last_updated %}
+        <div class="updated-section">
+            Last updated: {{ last_updated }}
+        </div>
+        {% endif %}
+        <div class="section-title">Team Members</div>
+        <div class="members-list">
+            {% if members %}
+                {% for name, id in members.items %}
+                <a href="{% url 'viewmember' id.IDNum %}" style="display:block; color:#00c6cf; text-decoration:none; margin-bottom:6px; font-weight:600;">
+                {{ name }}
+                </a>
+                {% endfor %}
+            {% else %}
+                <span>No members listed.</span>
+            {% endif %}
+        </div>
+        <hr>
+        <div class="section-title">Market Info</div>
+        <div class="stats-grid">
+            <div class="stat-label">Base Valuation:</div>
+            <div class="stat-value">{{ base_valuation }}</div>
+            <div class="stat-label">Current Valuation:</div>
+            <div class="stat-value highlight">{{ current_valuation }}</div>
+            <div class="stat-label">Individual Shares in Market:</div>
+            <div class="stat-value">{{ team.Individual_Number_of_shares_in_market }}</div>
+            <div class="stat-label">Individual Unit Share Price:</div>
+            <div class="stat-value">{{ team.Individual_Unit_Share_Price }}</div>
+            <div class="stat-label">Team Shares in Market:</div>
+            <div class="stat-value">{{ team.Teams_Number_of_shares_in_market }}</div>
+            <div class="stat-label">Unsold Shares (with company):</div>
+            <div class="stat-value">{{ unsold_shares }}</div>
+            <div class="stat-label">Treasury:</div>
+            <div class="stat-value">{{ treasury }}</div>
+        </div>
+        <hr>
+        <div class="section-title">News & Updates</div>
+        <div class="news-section">
+            {{ team.News_and_updates|default:"No updates yet." }}
+        </div>
+        <hr>
+        <div class="section-title">Actions</div>
+        <a href="Bid/" class="action-btn">Place Bid</a>
+        <a href="Ask/" class="action-btn">Place Ask</a>
+        {% if Loans %}
+        <hr>
+        <div class="section-title">Loans</div>
+        <div class="loans-section">
+            {% for principal, when in Loans.items %}
+                Principal: <span class="highlight">{{ principal }}</span> taken on <span>{{ when }}</span><br>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if team_links or investing_team_links %}
+        <hr>
+        <div class="section-title">Team Links</div>
+        <div class="team-links-section">
+            {% if team_links %}
+                <span style="color:#ffd700;">Invested in:</span>
+                {% for link in team_links %}
+                    {{ link.invested_in_team.Name }}{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+                <br>
+            {% endif %}
+            {% if investing_team_links %}
+                <span style="color:#ffd700;">Investors:</span>
+                {% for link in investing_team_links %}
+                    {{ link.team_investing.Name }}{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+            {% endif %}
+        </div>
+        {% endif %}
+        {% if admin %}
+        <hr>
+        <div class="section-title">Order Book</div>
+        <div class="order-book-section">
+            {{ team.Old_order_book }}
+        </div>
+        {% endif %}
+    </div>
     
 </body>
 </html>

@@ -12,6 +12,8 @@ from decimal import Decimal
 def dice_roll():
     return secrets.randbelow(12) + 1  # 1-12
 
+#TODO: FIX THE DAMN ORDER BOOKS THINGS MAN. ;-; 
+
 #TODO: IMP possible major idea issue at make_initial_individual_asks_by_team
 #TODO: Discuss with team. Should the money in each induviudals wallet be 1/4th of their company's initial valuation/treasury before the event starts?
 #      Or should it start with all 100 to keep playing field more level or should it be 0?
@@ -301,7 +303,7 @@ def addask(sender, instance,created, **kwargs): #adding ask to order book of the
             #TODO: make this more efficient by removing the unnessecary get of order book while creating order transaction. as we already have orderbook.
 
 class Individual_OrderBook(m.Model): #maybe this method of doing it is making the db a little too complicated. But using this for now.
-    team=m.ForeignKey(Team,on_delete=m.DO_NOTHING,null=False)
+    team=m.OneToOneField(Team,on_delete=m.DO_NOTHING,null=False)
     bids=m.ManyToManyField(Individual_Bid)
     asks=m.ManyToManyField(Individual_Ask)
     placedwhen=m.DateTimeField(auto_now_add=True)

@@ -1,14 +1,16 @@
 from django.contrib import admin
 from django.urls import path, include
 from . import views
+from django.contrib.auth.views import LoginView
 
 urlpatterns = [
     path('',views.homepage,name='home'),
     path('view/<str:pk>/',views.seeteam,name='seeteam'),
+    path("viewmember/<str:pk>/", views.view_member, name="viewmember"),
     path('view/<str:pk>/Bid/',views.placebid,name='placebid'),
     path('view/<str:pk>/Ask/',views.placeask,name='placeask'),
-    path('login',views.login_page,name='login'),
-    path('logout',views.logout_page,name='logout'),
+    path('login/',views.login_page,name='login'),
+    path('logout/',views.logout_page,name='logout'),
 ]
 
 

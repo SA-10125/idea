@@ -1,1 +1,150 @@
-Make this like login so u can take in bid details.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Place Bid | {{ team.Name }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: #181a20;
+            color: #e0e0e0;
+            font-family: 'Montserrat', sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .bid-container {
+            background: #23262f;
+            border-radius: 14px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.22);
+            padding: 36px 28px 28px 28px;
+            width: 100%;
+            max-width: 370px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        h2 {
+            color: #00c6cf;
+            font-size: 2rem;
+            margin-bottom: 10px;
+            font-weight: 600;
+            text-align: center;
+        }
+        .team-name {
+            color: #ffd700;
+            font-size: 1.15rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 18px;
+        }
+        label {
+            font-size: 1rem;
+            margin-bottom: 6px;
+            color: #e0e0e0;
+            font-weight: 500;
+        }
+        input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            background: #181a20;
+            color: #e0e0e0;
+            font-size: 1rem;
+            margin-bottom: 16px;
+            box-sizing: border-box;
+            outline: none;
+            transition: background 0.2s;
+        }
+        input[type="number"]:focus, input[type="text"]:focus {
+            background: #23262f;
+        }
+        .bid-btn {
+            background: #00c6cf;
+            color: #181a20;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 0;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+            margin-top: 8px;
+        }
+        .bid-btn:hover {
+            background: #ffd700;
+            color: #23262f;
+        }
+        .success-message {
+            color: #00c6cf;
+            background: #181a20;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 1rem;
+        }
+        .error-message {
+            color: #ff4d4f;
+            background: #2c1a1a;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 1rem;
+        }
+        @media screen and (max-width: 500px) {
+            .bid-container {
+                padding: 22px 8px 18px 8px;
+                max-width: 98vw;
+            }
+            h2 {
+                font-size: 1.3rem;
+            }
+        }
+    </style>
+    <script>
+        function confirmBid(event) {
+            event.preventDefault();
+            const bidprice = document.getElementById('bidprice').value;
+            const nobidshares = document.getElementById('nobidshares').value;
+            if (bidprice && nobidshares) {
+                if (confirm(`Are you sure you want to place a bid for ${nobidshares} shares at ₹${bidprice} per share?`)) {
+                    event.target.form.submit();
+                }
+            }
+        }
+    </script>
+</head>
+<body>
+    <form method="post" class="bid-container">
+        {% csrf_token %}
+        <h2>Place Bid</h2>
+        <div class="team-name">{{ team.Name }}</div>
+        {% if messages %}
+            {% for message in messages %}
+                <div class="{% if message.tags %}{{ message.tags }}-message{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+        <label for="bidprice">Bid Price (per share)</label>
+        <input type="number" step="0.01" min="0" name="bidprice" id="bidprice" required>
+        <label for="nobidshares">Number of Shares</label>
+        <input type="number" min="1" name="nobidshares" id="nobidshares" required>
+        <button type="submit" class="bid-btn" onclick="confirmBid(event)">Submit Bid</button>
+    </form>
+    <div class="message">
+      {% if messages %}
+        <ul class="messages"> <!--make grammatical changes lol-->
+          {% for msg in messages %}
+            <p>{{ msg }}</p>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+</body>
+</html>

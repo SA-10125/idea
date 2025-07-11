@@ -1,0 +1,132 @@
+<!--
+Suggestions for more data to pass and show:
+- Show user's email, join date, or profile info if available.
+- Display user's total net worth with currency formatting.
+- List companies/teams where the user owns the most shares.
+- Show recent transactions or trades if tracked.
+- Add a section for user's bids/asks if relevant.
+- Display a profile picture if you ever add images.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ user.username }} | Profile</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: #181a20;
+            color: #e0e0e0;
+            font-family: 'Montserrat', sans-serif;
+            margin: 0;
+            min-height: 100vh;
+        }
+        .container {
+            background: #23262f;
+            border-radius: 14px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.22);
+            max-width: 480px;
+            margin: 48px auto 0 auto;
+            padding: 36px 28px 28px 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+        h1 {
+            color: #00c6cf;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+        .section-title {
+            color: #ffd700;
+            font-size: 1.08rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            margin-top: 18px;
+            letter-spacing: 0.5px;
+        }
+        .info-block {
+            background: #181a20;
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-bottom: 8px;
+            font-size: 1rem;
+            color: #e0e0e0;
+        }
+        .highlight {
+            color: #ffd700;
+            font-weight: 700;
+        }
+        .teams-list {
+            background: #23262f;
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+        .team-link {
+            display: block;
+            color: #00c6cf;
+            text-decoration: none;
+            margin-bottom: 6px;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+        .team-link:hover {
+            color: #ffd700;
+        }
+        hr {
+            border: none;
+            border-top: 1px solid #282c34;
+            margin: 18px 0;
+        }
+        @media screen and (max-width: 600px) {
+            .container {
+                padding: 16px 4px 12px 4px;
+                max-width: 98vw;
+            }
+            h1 {
+                font-size: 1.3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{{ user.username }}</h1>
+        <div class="section-title">Profile Info</div>
+        <div class="info-block">
+            <!-- You can add more info here if available -->
+            <span>User ID:</span> <span class="highlight">{{ ID.IDNum }}</span><br>
+            <span>Net Worth:</span> <span class="highlight">{{ net_worth }}</span>
+        </div>
+        <hr>
+        <div class="section-title">Teams/Companies</div>
+        <div class="teams-list">
+            {% if teams %}
+                {% for link in teams %}
+                    <a href="{% url 'seeteam' link.team_linked.Name %}" class="team-link">
+                        {{ link.team_linked.Name }}
+                    </a>
+                {% endfor %}
+            {% else %}
+                <span>No teams joined yet.</span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="message">
+      {% if messages %}
+        <ul class="messages"> <!--make grammatical changes lol-->
+          {% for msg in messages %}
+            <p>{{ msg }}</p>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+</body>
+</html>

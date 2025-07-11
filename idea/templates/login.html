@@ -1,100 +1,118 @@
-<!--Responsive:Y Clean:Y Changes:M-->
-{% load static %}
-  <title>Login</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Montserrat:400,700&display=swap">
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: 'Montserrat', sans-serif;
-      color: #333;
-      background-size: cover;
-      background-position: center; 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+      .button {
+        background: linear-gradient(90deg, #00c6cf 0%, #23262f 100%);
+        color: #fff;
+        font-weight: 700;
+        border: none;
+        border-radius: 8px;
+        padding: 14px 0;
+        font-size: 1.15rem;
+        width: 70%;
+        margin: 0 auto;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+        cursor: pointer;
+        transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+        display: block;
     }
-
-    .overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(255, 255, 255, 0.5); 
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
+    .button:hover {
+        background: linear-gradient(90deg, #ffd700 0%, #00c6cf 100%);
+        color: #181a20;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.28);
     }
-
-    .login {
-      background-color: #090b5c;
-      font-size: 2rem; 
-      color: white;
-      max-width: 175px;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.8);
-      text-align: center;
-      padding: 1rem;
-      margin: 0 auto; 
-    }
-    
-    .container {
-      max-width: 90%; 
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.8);
-      background-color: #fff;
-      padding: 2.5rem;
-      text-align: center;
-      margin-top: 2rem;
-      margin: 0 auto; 
-    }
-    
-    .space {
-      margin-top: 10%; 
-    }
-    
-    .message {
-      color: red;
-      text-align: left;
-      margin-top: 1rem;
-      font-size: 14px;
-      line-height: 1.5;
-      padding-left: 1rem; 
-    }
-    
-    table {
-      margin: 0 auto;
-      width: 100%; 
-    }
-    
-    .button {
-      font-size: 125%;
-      max-width: 70%; 
-      margin: 0 auto; 
-      padding: 2.5%;
-      border-radius: 5px;
-      font-family: 'Montserrat', sans-serif;
-    }
-
-    .inputborder {
-      border-radius: 5px;
-      border-style: solid;
-      border-width: 1px;
-      font-size: inherit;
-    }
-
-    ::placeholder { 
-      color: black;
-      opacity: 1; 
-    }
-    
-    :-ms-input-placeholder { 
-      color: black;
-    }
-    
-    ::-ms-input-placeholder {
-      color: black;
-    }
-  </style>
-
-  <div class="overlay">
+        body {
+            background: #181a20;
+            color: #e0e0e0;
+            font-family: 'Montserrat', sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-container {
+            background: #23262f;
+            border-radius: 14px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.22);
+            padding: 40px 32px 32px 32px;
+            width: 100%;
+            max-width: 370px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        h2 {
+            color: #00c6cf;
+            font-size: 2rem;
+            margin-bottom: 10px;
+            font-weight: 600;
+            text-align: center;
+        }
+        label {
+            font-size: 1rem;
+            margin-bottom: 6px;
+            color: #e0e0e0;
+            font-weight: 500;
+        }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            background: #181a20;
+            color: #e0e0e0;
+            font-size: 1rem;
+            margin-bottom: 16px;
+            box-sizing: border-box;
+            outline: none;
+            transition: background 0.2s;
+        }
+        input[type="text"]:focus, input[type="password"]:focus {
+            background: #23262f;
+        }
+        .login-btn {
+            background: #00c6cf;
+            color: #181a20;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 0;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+            margin-top: 8px;
+        }
+        .login-btn:hover {
+            background: #ffd700;
+            color: #23262f;
+        }
+        .error-message {
+            color: #ff4d4f;
+            background: #2c1a1a;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 1rem;
+        }
+        @media screen and (max-width: 500px) {
+            .login-container {
+                padding: 22px 8px 18px 8px;
+                max-width: 98vw;
+            }
+            h2 {
+                font-size: 1.3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+     <div class="overlay">
     <div class="space"></div>
     <div class="login">LOGIN</div>
     <br>
@@ -115,11 +133,7 @@
         <br>
         <input type="submit" class="button" value="Login">
       </form>
-
-      <br>
-      <br>
-    </div>
-    <div class="message">
+        <div class="message">
       {% if messages %}
         <ul class="messages"> <!--make grammatical changes lol-->
           {% for msg in messages %}
@@ -128,4 +142,5 @@
         </ul>
       {% endif %}
     </div>
-  </div>
+</body>
+</html>

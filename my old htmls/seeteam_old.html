@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{team.Name}}</title>
+    <p>{{team.Name}}</p>
+       <p>No of shares in Induvidual market: {{team.Individual_Number_of_shares_in_market}}</p>
+    <p></p>
+    <p>Induvidual Current Unit share price: {{team.Individual_Unit_Share_Price}}</p>
+    <p>Team number of shares in market: {{team.Teams_Number_of_shares_in_market}}</p>
+    <p> Current valuation of team: {{current_valuation}}</p>
+<p></p>
+<p></p>
+    <p>News: {{team.News_and_updates}}</p>
+<p></p>
+<a href="Bid/">Place Bid</a>
+<p></p>
+<a href="Ask/">Place Ask</a>
+<p></p>
+<p></p>   
+{% if admin %}
+<p>{{team.Old_order_book}}</p>
+{% endif %}
+</head>
+<body>
+    
+</body>
+</html>
