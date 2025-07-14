@@ -108,4 +108,18 @@ def placebid(request,pk):
 
 @login_required(login_url='login')
 def placeask(request,pk):
-    pass
+    context={}
+    context["team"]=Team.objects.get(Name=pk)
+    if request.method == 'POST':
+        askprice = float(request.POST.get('askprice'))
+        noaskshares = int(request.POST.get('noaskshares'))
+        if noaskshares <= 0 or askprice <= 0:
+            messages.error(request, 'Invalid ask details. Please enter positive values.')
+            return redirect('seeteam', pk=pk)
+        Individual_Ask.objects.create(asker=request.user,asker_ID=(UsersID.objects.get(user=request.user)),team_to_ask_on=context["team"],askprice=askprice,noaskedshares=noaskshares)
+        messages.success(request, 'Ask placed successfully.') #TODO: V IMP Figure out a better way for this. also configure this to work.
+        
+        return redirect('seeteam', pk=pk)
+        
+    return render(request,'placeask.html',context)
+
