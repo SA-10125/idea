@@ -1,8 +1,5 @@
 <!--
 Suggestions for more data to pass and show:
-- Show user's email, join date, or profile info if available.
-- Display user's total net worth with currency formatting.
-- List companies/teams where the user owns the most shares.
 - Show recent transactions or trades if tracked.
 - Add a section for user's bids/asks if relevant.
 - Display a profile picture if you ever add images.
@@ -103,6 +100,8 @@ Suggestions for more data to pass and show:
         <div class="info-block">
             <!-- You can add more info here if available -->
             <span>User ID:</span> <span class="highlight">{{ ID.IDNum }}</span><br>
+            <span>Email:</span> <span class="highlight">{{ email }}</span><br>
+            <span>Date joined:</span> <span class="highlight">{{ joined_date }}</span><br>
             <span>Net Worth:</span> <span class="highlight">{{ net_worth }}</span>
         </div>
         <hr>

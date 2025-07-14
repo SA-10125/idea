@@ -54,6 +54,8 @@ def view_member(request, pk): #TODO: make this with proper checks and all.
     context={"ID":ID,"user":curuser,"net_worth":net_worth} #in the future, also pass what companies he has the most stock in.
     context["teams"]=Individual_LinktoTeam.objects.filter(curuser=curuser,is_user_in_team=True)
     context["invested_in"]=[i for i in Individual_LinktoTeam.objects.filter(curuser=curuser) if i.stocks>0]
+    context["email"]=curuser.email
+    context["joined_date"]=curuser.date_joined
     return render(request, 'seeperson.html',context)
 
 
