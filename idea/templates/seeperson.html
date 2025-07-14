@@ -118,6 +118,18 @@ Suggestions for more data to pass and show:
                 <span>No teams joined yet.</span>
             {% endif %}
         </div>
+        <div class="section-title">Investments</div>
+        <div class="teams-list">
+            {% if invested_in %}
+                {% for link in invested_in %}
+                    <a href="{% url 'seeteam' link.team_linked.Name %}" class="team-link">
+                        {{ link.team_linked.Name }} - {{ link.stocks }} shares
+                    </a> 
+                {% endfor %}
+            {% else %}
+                <span>No investments yet.</span>
+            {% endif %}
+        </div>
     </div>
     <div class="message">
       {% if messages %}
